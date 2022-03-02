@@ -1,0 +1,174 @@
+PAIS = 6
+MORTES = 5
+DATA = 0
+POPULACAO = 9
+CASOS = 4
+CONTINENTE = 10
+
+def menu():
+    print()
+    print("Menu")
+    print("1 - Data para verificar numero de casos e mortes em certo país")
+    print("2 - Países possuem mais que determinado número de mortes em determinada data")
+    print("3 - País(es) com menor(es) numero de mortes em determinada data")
+    print("4 - Dados mais recentess de morte por milhao de habitantes dos paises da europa")
+    print("5 - Gerar arquivo contendo numero de mortes, populacao e numero de casos de cada continente ")
+
+def lerArquivo(arqCovid):
+    mat = []
+    arqCovid= open(r"COVID-19.csv", "r")
+    for linha in arqCovid:
+        linha = linha.replace("\n", '')
+        dados = linha.split(',')
+        mat.append(dados)
+    mat = mat[1:]
+    arqCovid.close()
+    return mat
+
+def dateString(day,month,year):
+    if month < 10:
+        month = '0' + str(month)
+    if day < 10:
+        day = '0' + str(day)
+    date = str(day)+'/'+ str(month)+'/'+ str(year)
+    return date
+
+def morte_por_dia_e_pais(mat, day, month, year,country):
+    date = dateString(day,month,year)
+    for i in range(len(mat)):
+        if date == mat[i][DATA] and country == mat[i][PAIS]:
+            return mat[i][MORTES], mat[i][CASOS]
+
+def pais_que_atingiu_qtde_de_mortes(mortes, mat):
+    dicionarioPais = {}
+    for i in range(len(mat)):
+        mat[i][MORTES] =int(mat[i][MORTES])
+        if mat[i][MORTES] >= mortes:
+            dicionarioPais[mat[i][PAIS]] = mat[i][DATA]
+    return dicionarioPais
+
+def novo_arquivo(mat):
+    arq = open(r"novoAquivoCovid.csv", "w")
+    dados_continente = soma_dados_por_continente(mat)
+    for linha in dados_continente:
+        arq.write(str(linha) + "\n")     
+    arq.close()
+    arq = open(r"novoAquivoCovid.csv", "r")
+    print()
+    print("Conteúdo do arquivo: ")
+    print(arq.read())
+    arq.close()
+
+def menor_caso_morte(mat, day, month, year):
+    date = dateString(day,month,year)
+    listaPais = []
+    lowestValue = 100000000
+    for i in range(len(mat)):
+        if date == mat[i][DATA]:
+            if lowestValue > int(mat[i][MORTES]):
+                lowestValue = int(mat[i][MORTES])
+    for j in range(len(mat)):
+        if date == mat[j][DATA]:
+            pais = mat[j][PAIS]
+            if lowestValue == int(mat[j][MORTES]) and pais not in listaPais:
+                listaPais.append(mat[j][PAIS])
+    return listaPais, lowestValue
+
+# - gerar um arquivo contendo o número de mortes, população e número de casos de cada continente.
+def numeros_por_continente(mat, continente):
+    somaMortes = 0
+    somaCasos = 0
+    somaPopulacao = 0
+    dicPais = {}
+    for i in range(len(mat)):     
+        morte = int(mat[i][MORTES])
+        casos = int(mat[i][CASOS])
+        if mat[i][POPULACAO] == 'BES' or mat[i][POPULACAO] == '':
+            mat[i][POPULACAO] = 0
+        populacao = int(mat[i][POPULACAO])
+        
+        if continente == mat[i][CONTINENTE]:
+            pais = mat[i][PAIS]
+            somaMortes += morte
+            somaCasos += casos
+            if pais not in dicPais:
+                dicPais[pais] = populacao, continente
+                somaPopulacao += dicPais[pais][0]
+                
+    return somaMortes, somaCasos, somaPopulacao
+          
+def europa_dados_por_pais_por_milhao(mat, day, month, year):
+    data = dateString(day,month,year)
+    dicPais = {}
+    for i in range(len(mat)):
+        if mat[i][POPULACAO] == 'BES' or mat[i][POPULACAO] == '':
+            mat[i][POPULACAO] = 0 
+        
+        if mat[i][CONTINENTE] == "Europe":
+            if data == mat[i][DATA]:
+                populacao = int(mat[i][POPULACAO])
+                mortes = int(mat[i][MORTES])
+                mortePorMilhao = round((mortes*1000000)/populacao, 3)
+                dicPais[mat[i][PAIS]] = mortePorMilhao
+    return dicPais
+
+def soma_dados_por_continente(mat):
+    continentes = ["Asia", "Europe", "Africa", "America", "Oceania"]
+    dados = []
+    for continente in continentes:
+        somaMortes, somaCasos, somaPopulacao = numeros_por_continente(mat, continente)
+        L = [continente, somaMortes, somaCasos, somaPopulacao]
+        dados.append(L)
+    return dados  
+
+nomeArq = r'COVID-19.csv'
+
+opcao = -1
+matriz = lerArquivo(nomeArq)
+
+while opcao !=0:
+    menu()
+    opcao = int(input("Digite uma opcao: "))
+    if opcao == 1:
+        print("Verificar numero de casos e mortes por país e data: ")
+        dia = int(input("Dia: "))
+        mes = int(input("Mes: "))
+        ano = int(input("Ano: "))
+        pais = input("País: ")
+        data = dateString(dia,mes,ano)
+        mortes,casos = morte_por_dia_e_pais(matriz, dia, mes, ano,pais)
+        print(f"{pais} teve  {casos} casos e {mortes} mortes na data {data}.") 
+
+    elif opcao==2:
+        qtdeMortes = int(input("Digite a quantidade de mortes para ver os países que atingiram este valor: "))
+        print()
+        print(f"Os países que atingiram mais de {qtdeMortes} mortes e data que esse valor atingiu: ")
+        print("")
+        paisEMortes = pais_que_atingiu_qtde_de_mortes(qtdeMortes, matriz)
+        print(paisEMortes)
+        
+    elif opcao ==3:
+        print("Data para verificar país(es) com menor(es) caso(s):")
+        dia = int(input("Dia: "))
+        mes = int(input("Mes: "))
+        ano = int(input("Ano: "))
+        data = dateString(dia,mes,ano)
+        paisMenorValorMorte, menorValor = menor_caso_morte(matriz, dia, mes, ano)
+        print(f" O menor valor de morte na data {data} foi de {menorValor}. Pais(es) foi(foram):")
+        print(f"{paisMenorValorMorte}")
+    
+    elif opcao ==4:
+        print("Digite a data mais recente que deseja verificar mortes por habitantes na europa: ")
+        dia = int(input("Dia: "))
+        mes = int(input("Mes: "))
+        ano = int(input("Ano: "))
+        print("Os dados mais recentes de morte por milhao de hab. dos países da europa são: ")
+        print()
+        mortePorMilhao = europa_dados_por_pais_por_milhao(matriz, dia, mes, ano)
+        print(mortePorMilhao)
+
+    elif opcao ==5:
+        soma_dados_por_continente(matriz)
+        novo_arquivo(matriz)
+    else:
+        print("Opcao invalida")
